@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F9FAFB; /* educar-light */
+  --foreground: #1F2937; /* educar-dark */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* Colores Corporativos Educar Yaguara */
+  --color-educar-green: #3D6A13;
+  --color-educar-burgundy: #722F26;
+  --color-educar-light: #F9FAFB;
+  --color-educar-dark: #1F2937;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #111827; /* Tailwind gray-900 */
+    --foreground: #F9FAFB; /* educar-light */
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
