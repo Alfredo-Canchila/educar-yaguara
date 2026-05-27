@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import LeadsTable from "@/components/admin/LeadsTable";
 import { Users, Mail, PhoneCall } from "lucide-react";
-import { assertSupabaseConfigured, supabase } from "@/lib/supabase";
+import { getSupabaseClient, supabase } from "@/lib/supabase";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -17,12 +17,11 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!supabaseReady) return;
 
-    // Aquí cargaríamos las estadísticas reales de Supabase.
-    // Para simplificar, hacemos un conteo básico:
     const fetchStats = async () => {
       try {
-        assertSupabaseConfigured();
-        const { data } = await supabase.from("leads").select("estado, created_at");
+        const sb = getSupabaseClient();
+        const { data } = await sb.from("leads").select("estado, created_at");
+
         if (data) {
           const today = new Date().toISOString().split("T")[0];
 
