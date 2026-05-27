@@ -1,38 +1,51 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient, supabase } from "@/lib/supabase";
 import { Lead } from "@/types";
-import { MessageSquare, MessageCircle, MoreVertical, Edit2 } from "lucide-react";
+import { MessageSquare, MessageCircle } from "lucide-react";
 
 export default function LeadsTable() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
 
+  const supabaseReady = !!supabase;
+
   useEffect(() => {
+    if (!supabaseReady) {
+      setLoading(false);
+      return;
+    }
+
     fetchLeads();
 
+    const sb = getSupabaseClient();
+
     // Suscripción a cambios en tiempo real en la tabla leads
-    const channel = supabase
+    const channel = sb
       .channel("custom-all-channel")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "leads" },
-        (payload) => {
+        () => {
           fetchLeads();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      sb.removeChannel(channel);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabaseReady]);
 
   const fetchLeads = async () => {
     try {
-      const { data, error } = await supabase
+      if (!supabaseReady) return;
+
+      const sb = getSupabaseClient();
+      const { data, error } = await sb
         .from("leads")
         .select("*")
         .order("created_at", { ascending: false });
@@ -48,7 +61,10 @@ export default function LeadsTable() {
 
   const updateLeadStatus = async (id: string, newStatus: string) => {
     try {
-      const { error } = await supabase
+      if (!supabaseReady) return;
+
+      const sb = getSupabaseClient();
+      const { error } = await sb
         .from("leads")
         .update({ estado: newStatus })
         .eq("id", id);
@@ -68,24 +84,55 @@ export default function LeadsTable() {
   const getStatusBadge = (estado: string) => {
     switch (estado) {
       case "Nuevo":
-        return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">Nuevo</span>;
+        return (
+          <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+            Nuevo
+          </span>
+        );
       case "En Proceso":
-        return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">En Proceso</span>;
+        return (
+          <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+            En Proceso
+          </span>
+        );
       case "Contactado":
-        return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Contactado</span>;
+        return (
+          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+            Contactado
+          </span>
+        );
       default:
-        return <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">{estado}</span>;
+        return (
+          <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
+            {estado}
+          </span>
+        );
     }
   };
 
+  if (!supabaseReady) {
+    return (
+      <div className="p-6 rounded-2xl border border-yellow-200 bg-yellow-50 text-yellow-800">
+        Supabase no está configurado. Define <code>NEXT_PUBLIC_SUPABASE_URL</code> y{" "}
+        <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> en Vercel para ver los leads.
+      </div>
+    );
+  }
+
   if (loading) {
-    return <div className="p-8 text-center text-gray-500">Cargando interesados...</div>;
+    return (
+      <div className="p-8 text-center text-gray-500">
+        Cargando interesados...
+      </div>
+    );
   }
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-        <h2 className="text-xl font-bold text-[var(--color-educar-dark)]">Bandeja de Interesados</h2>
+        <h2 className="text-xl font-bold text-[var(--color-educar-dark)]">
+          Bandeja de Interesados
+        </h2>
         <span className="text-sm text-gray-500">Total: {leads.length}</span>
       </div>
 
@@ -163,7 +210,10 @@ export default function LeadsTable() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="font-semibold text-gray-900">Mensaje del Interesado</h3>
-              <button onClick={() => setSelectedMessage(null)} className="text-gray-400 hover:text-gray-600">
+              <button
+                onClick={() => setSelectedMessage(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
                 ✕
               </button>
             </div>
